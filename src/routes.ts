@@ -23,6 +23,8 @@ const maxKeyNumber = 10;
 const store: Record<string | number, AverageExamplar> = {};
 const router = Router();
 
+const random = "please add to git now";
+
 router.post(
   "/add",
   validateBody(AddExemplarSchema),
