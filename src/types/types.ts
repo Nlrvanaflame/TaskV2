@@ -1,30 +1,30 @@
-import { Request, Response, Router } from "express";
+import { type Request } from 'express'
 
 export interface AverageExamplar {
-  id: string;
-  name: string;
-  proffesion: string;
-  ttl: number;
-  createdAt: number;
+  id: string
+  name: string
+  proffesion: string
+  ttl?: number
+  createdAt: number
+  timesUsed: number
 }
 
 export interface AddExemplar {
-  key: string;
-  name: string;
-  proffesion: string;
-  ttl: number;
+  key: string
+  name: string
+  proffesion: string
+  ttl?: number
 }
 export interface UpdateExemplar {
   name: string
   proffesion: string
-  ttl: number
+  ttl?: number
 }
 
 export interface GetItem {
-  key: string;
+  key: string
 }
 
 export interface CustomRequest<T> extends Request {
-  body: T;
+  body: T
 }
-
