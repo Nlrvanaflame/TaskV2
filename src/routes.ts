@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-dynamic-delete */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
   type AverageExamplar,
   type AddExemplar,
@@ -10,15 +12,14 @@ import uuid from 'uniqid'
 import logger from './middleware/logger'
 
 import { validateBody } from './middleware/validator'
-import { removeOldAndExpiredKeys } from './utils'
 import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
+import { removeOldAndExpiredKeys } from './utils'
 
-const maxKeyNumber = 10
-
-const store: Record<string | number, AverageExamplar> = {}
+export const store: Record<string | number, AverageExamplar> = {}
+const maxKeyNumber = 5
 const router = Router()
 
 router.post(
@@ -100,7 +101,7 @@ router.delete(
       const { key } = req.params
       const subjectToTerminate = store[key]
 
-      if (subjectToTerminate) {
+      if (subjectToTerminate != null) {
         delete store[key]
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
