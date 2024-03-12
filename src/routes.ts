@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-dynamic-delete */
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
-  type AverageExamplar,
   type AddExemplar,
-  type GetItem,
   type CustomRequest,
-  type UpdateExemplar
+  type UpdateExemplar,
+  type GetExamplar
 } from './types/types'
 import { type Response, Router } from 'express'
 import uuid from 'uniqid'
@@ -16,10 +13,10 @@ import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
-import { removeOldAndExpiredKeys } from './utils'
+import { store } from './config/default'
 
-export const store: Record<string | number, AverageExamplar> = {}
-const maxKeyNumber = 5
+// export const store: Record<string | number, AverageExamplar> = {}
+
 const router = Router()
 
 router.post(
@@ -32,54 +29,43 @@ router.post(
     )
 
     try {
-      removeOldAndExpiredKeys(store, maxKeyNumber)
       const id = uuid()
       const { key, name, proffesion, ttl } = req.body
-      store[key] = {
+      store.set(key, {
         id,
         name,
         proffesion,
         ttl,
         createdAt: Date.now(),
         timesUsed: 0
-      }
+      })
 
       logger.info('Request successfull')
-      res.status(201).send(store[key])
+      res.status(201).send(store.get(key))
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send('Unexpected error occured')
     }
   }
 )
-
-router.get('/getAll', (req: CustomRequest<any>, res: Response) => {
-  const storeArray = Object.entries(store).map(([key, value]) => ({
-    key,
-    value
-  }))
-
-  res.send(storeArray)
-})
-
 router.get(
   '/getValue/:key',
-  (req: CustomRequest<GetItem>, res: Response) => {
+  (req: CustomRequest<GetExamplar>, res: Response) => {
     try {
       logger.info(
         { requestBody: req.body, queryParams: req.query },
         'Handling request to return a single item based on key'
       )
       const { key } = req.params
-      const item = store[key]
+      const item = store.get(key)
 
-      if (item?.ttl && item.ttl <= Date.now() - item.createdAt) {
-        delete store[key]
+      if (((item?.ttl) != null) && item.ttl <= Date.now() - item.createdAt) {
+        store.delete(key)
         logger.info('Expired or not existing')
         return res.status(404).send('Time expired')
       }
 
-      item.timesUsed += 1
+      if (item != null) item.timesUsed += 1
       res.status(200).send(item)
       logger.info('Request successfull')
     } catch (e) {
@@ -91,7 +77,7 @@ router.get(
 
 router.delete(
   '/terminate/:key',
-  (req: CustomRequest<GetItem>, res: Response) => {
+  (req: CustomRequest<GetExamplar>, res: Response) => {
     logger.info(
       { requestBody: req.body, queryParams: req.query },
       'Handle  request to delete a single item'
@@ -99,10 +85,10 @@ router.delete(
 
     try {
       const { key } = req.params
-      const subjectToTerminate = store[key]
+      const subjectToTerminate = store.get(key)
 
       if (subjectToTerminate != null) {
-        delete store[key]
+        store.delete(key)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
       }
@@ -128,23 +114,32 @@ router.put(
     try {
       const { key } = req.params
       const updates = req.body
-      const itemToUpdate = store[key]
+      const itemToUpdate = store.get(key)
 
-      if (!itemToUpdate) {
+      if (itemToUpdate == null) {
         logger.info('No such item')
         return res.status(404).send('nqma takuv chovek')
       }
 
-      store[key] = {
+      store.set(key, {
         ...itemToUpdate,
         ...updates
-      }
-      res.status(200).send(store[key])
+      })
+      res.status(200).send(store.get(key))
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send(e)
     }
   }
 )
+// dev requests
+router.get('/getAll', (req: CustomRequest<any>, res: Response) => {
+  const storeArray = Object.entries(store).map(([key, value]) => ({
+    key,
+    value
+  }))
+
+  res.send(storeArray)
+})
 
 export default router

@@ -21,7 +21,7 @@ export interface UpdateExemplar {
   ttl?: number
 }
 
-export interface GetItem {
+export interface GetExamplar {
   key: string
 }
 
