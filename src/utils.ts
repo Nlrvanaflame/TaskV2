@@ -8,7 +8,7 @@ function deleteLeastUsed (
   validKeys: Array<{ key: string, ttlLeft: number, timesUsed: number }>): void {
   /* Here we sort the array of valid keys we have populated beforehand and push the first key to the array for deletion
     */
-  if (Object.keys(store).length >= maxKeyNumber) {
+  if (store.size >= maxKeyNumber) {
     validKeys.sort((a, b) => {
       if (a.timesUsed === b.timesUsed) {
         return a.ttlLeft - b.ttlLeft
@@ -28,12 +28,14 @@ export function removeOldAndExpiredKeys (
 
   /* Checks for any expired keys and adds them to the array for deletion, also populates the valid keys array
     */
-  for (const [key, value] of Object.entries(store)) {
+  Array.from(store.entries()).forEach(([key, value]) => {
     const ttlLeft = (value.ttl != null) ? (value.createdAt + value.ttl - Date.now()) : Infinity
     if (ttlLeft <= 0) {
-      keysToDelete.push(key)
-    } else validKeys.push({ key, ttlLeft, timesUsed: value.timesUsed })
-  }
+      keysToDelete.push(key.toString())
+    } else {
+      validKeys.push({ key: key.toString(), ttlLeft, timesUsed: value.timesUsed })
+    }
+  })
 
   deleteLeastUsed(store, maxKeyNumber, keysToDelete, validKeys)
   keysToDelete.forEach(key => {

@@ -134,7 +134,7 @@ router.put(
 )
 // dev requests
 router.get('/getAll', (req: CustomRequest<any>, res: Response) => {
-  const storeArray = Object.entries(store).map(([key, value]) => ({
+  const storeArray = Array.from(store).map(([key, value]) => ({
     key,
     value
   }))
