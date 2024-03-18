@@ -1,12 +1,14 @@
 pros
-1 Code is clear and simple, should be easy to understand for someone looking at it for the first time. (like 90% of it, added comments on more complicated parts)
-2 There is no unnecessary code (i hope)
-3 There is single responsibility
-4 Code formatting is decent
+    Code is clear and simple, should be easy to understand for someone looking at it for the first time. There is no duplicate code. Everything has a single responsibility
+and is split into different methods. The methods are relatively short and called inside each other to construct the whole logic. The code formatting is done
+according to the set ESlint rules. There is breathing space in the code which makes it easy to read without too much strain.
 
 
 cons
-Unit testing doesnt handle edge cases
-Error handling and Response types are lacking
-There is a chance that 2 functions will execute at same time (i suspect its possible that if the function that run every x seconds try to run at the same time we make a request,
-there may be a problem )
+    Unit testing doesnt handle all the edge cases. Error handling is passable but could be better(i think), the Response types are non existent(I suck , will improve)
+
+    There is a chance that 2 functions will execute at the same time. In the scenario that the clean up function, that executes every x seconds and a request are made 
+at the same time, there may pop up an error.
+The clean up function for our keys is deteriorating the bigger our store database gets. It will get a lot slower.
+We also currently lack the technology to face the problem of a big influx of new keys when we get close to the cap.(Have to decide what is our best and desired counterplay) 
+
