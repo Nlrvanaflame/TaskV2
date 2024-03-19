@@ -39,6 +39,11 @@ router.post(
         createdAt: Date.now(),
         timesUsed: 0
       })
+      if (ttl != null) {
+        setTimeout(() => {
+          store.delete(key)
+        }, Number(ttl) * 1000)
+      }
 
       logger.info('Request successfull')
       res.status(201).send(store.get(key))

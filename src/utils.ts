@@ -28,7 +28,7 @@ export function removeOldAndExpiredKeys (
 
   /* Checks for any expired keys and adds them to the array for deletion, also populates the valid keys array
     */
-  Array.from(store.entries()).forEach(([key, value]) => {
+  store.forEach((value, key) => {
     const ttlLeft = (value.ttl != null) ? (value.createdAt + value.ttl - Date.now()) : Infinity
     if (ttlLeft <= 0) {
       keysToDelete.push(key.toString())
