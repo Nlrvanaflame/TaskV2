@@ -7,6 +7,7 @@ export interface AverageExamplar {
   ttl?: number
   createdAt: number
   timesUsed: number
+  timeoutId?: NodeJS.Timeout
 }
 
 export interface AddExemplar {
@@ -14,6 +15,7 @@ export interface AddExemplar {
   name: string
   proffesion: string
   ttl?: number
+  timeoutId?: NodeJS.Timeout
 }
 export interface UpdateExemplar {
   name: string

@@ -13,7 +13,7 @@ import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
-import { store } from './config/default'
+import { store, unlimitedTtlStore } from './config/default'
 
 // export const store: Record<string | number, AverageExamplar> = {}
 
@@ -31,22 +31,45 @@ router.post(
     try {
       const id = uuid()
       const { key, name, proffesion, ttl } = req.body
-      store.set(key, {
-        id,
-        name,
-        proffesion,
-        ttl,
-        createdAt: Date.now(),
-        timesUsed: 0
-      })
+
+      let timeoutId: NodeJS.Timeout | undefined
       if (ttl != null) {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           store.delete(key)
-        }, Number(ttl) * 1000)
+        }, ttl)
+        clearTimeout(store.get(key)?.timeoutId)
+        store.set(key, {
+          id,
+          name,
+          proffesion,
+          ttl,
+          createdAt: Date.now(),
+          timesUsed: 0,
+          timeoutId
+        })
+      }
+      if (ttl === null) {
+        unlimitedTtlStore.set(key, {
+          id,
+          name,
+          proffesion,
+          createdAt: Date.now(),
+          timesUsed: 0,
+          timeoutId
+        })
       }
 
       logger.info('Request successfull')
-      res.status(201).send(store.get(key))
+      res.status(200).json({
+        data: {
+          key,
+          name,
+          proffesion,
+          ttl,
+          createdAt: Date.now(),
+          timesUsed: 0
+        }
+      })
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send('Unexpected error occured')
@@ -64,15 +87,9 @@ router.get(
       const { key } = req.params
       const item = store.get(key)
 
-      if (((item?.ttl) != null) && item.ttl <= Date.now() - item.createdAt) {
-        store.delete(key)
-        logger.info('Expired or not existing')
-        return res.status(404).send('Time expired')
-      }
-
       if (item != null) item.timesUsed += 1
-      res.status(200).send(item)
       logger.info('Request successfull')
+      return res.status(200).json('Get request successfull')
     } catch (e) {
       logger.error('Unexpected error occured', e)
       res.status(500).send(e)
