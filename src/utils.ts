@@ -39,15 +39,6 @@ export function removeOldAndExpiredKeys (
     }
   })
 
-  unlimitedTtlStore.forEach((value, key) => {
-    const ttlLeft = (value.ttl != null) ? (value.createdAt + value.ttl - Date.now()) : Infinity
-    if (ttlLeft <= 0) {
-      keysToDelete.push(key.toString())
-    } else {
-      validKeys.push({ key: key.toString(), ttlLeft, timesUsed: value.timesUsed })
-    }
-  })
-
   deleteLeastUsed(store, unlimitedTtlStore, maxKeyNumber, keysToDelete, validKeys)
   keysToDelete.forEach(key => {
     clearTimeout(store.get(key)?.timeoutId)
