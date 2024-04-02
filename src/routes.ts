@@ -86,10 +86,18 @@ router.get(
       )
       const { key } = req.params
       const item = store.get(key)
+      const unlimitedStoreItem = unlimitedTtlStore.get(key)
 
-      if (item != null) item.timesUsed += 1
-      logger.info('Request successfull')
-      return res.status(200).json('Get request successfull')
+      if (item != null) {
+        item.timesUsed += 1
+        logger.info('Request successfull')
+        return res.status(200).json('Get request successfull')
+      }
+      if (unlimitedStoreItem != null) {
+        unlimitedStoreItem.timesUsed += 1
+        logger.info('Request successful')
+        return res.status(200).json('Get request successful')
+      }
     } catch (e) {
       logger.error('Unexpected error occured', e)
       res.status(500).send(e)
@@ -108,9 +116,15 @@ router.delete(
     try {
       const { key } = req.params
       const subjectToTerminate = store.get(key)
+      const unlimitedSubjectToTerminate = unlimitedTtlStore.get(key)
 
       if (subjectToTerminate != null) {
         store.delete(key)
+        logger.info('Request successful')
+        return res.status(200).send('rabotata e svurshena')
+      }
+      if (unlimitedSubjectToTerminate != null) {
+        unlimitedTtlStore.delete(key)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
       }
@@ -137,17 +151,26 @@ router.put(
       const { key } = req.params
       const updates = req.body
       const itemToUpdate = store.get(key)
+      const unlimitedItemToUpdate = unlimitedTtlStore.get(key)
 
-      if (itemToUpdate == null) {
-        logger.info('No such item')
-        return res.status(404).send('nqma takuv chovek')
+      if (itemToUpdate != null) {
+        store.set(key, {
+          ...itemToUpdate,
+          ...updates
+        })
+        res.status(200).send(store.get(key))
       }
 
-      store.set(key, {
-        ...itemToUpdate,
-        ...updates
-      })
-      res.status(200).send(store.get(key))
+      if (unlimitedItemToUpdate != null) {
+        unlimitedTtlStore.set(key, {
+          ...itemToUpdate,
+          ...updates
+        })
+        res.status(200).send(unlimitedTtlStore.get(key))
+      }
+
+      logger.info('No such item')
+      return res.status(404).send('nqma takuv chovek')
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send(e)
