@@ -147,6 +147,7 @@ router.put(
       'Handle request to update an existing item'
     )
 
+    // TODO - if ttl removed or added should be moved to the other store (difficulty - 💀)
     try {
       const { key } = req.params
       const updates = req.body
@@ -164,9 +165,11 @@ router.put(
       if (unlimitedItemToUpdate != null) {
         unlimitedTtlStore.set(key, {
           ...itemToUpdate,
-          ...updates
+          ...updates,
+          id: unlimitedItemToUpdate.id,
+          createdAt: unlimitedItemToUpdate.createdAt,
+          timesUsed: unlimitedItemToUpdate.timesUsed
         })
-        res.status(200).send(unlimitedTtlStore.get(key))
       }
 
       logger.info('No such item')
