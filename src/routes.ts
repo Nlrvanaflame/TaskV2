@@ -86,15 +86,15 @@ router.get(
       )
       const { key } = req.params
       const item = store.get(key)
-      const unlimitedStoreItem = unlimitedTtlStore.get(key)
+      const unlimitedTtlStoreItem = unlimitedTtlStore.get(key)
 
       if (item != null) {
         item.timesUsed += 1
         logger.info('Request successfull')
         return res.status(200).json('Get request successfull')
       }
-      if (unlimitedStoreItem != null) {
-        unlimitedStoreItem.timesUsed += 1
+      if (unlimitedTtlStoreItem != null) {
+        unlimitedTtlStoreItem.timesUsed += 1
         logger.info('Request successful')
         return res.status(200).json('Get request successful')
       }
