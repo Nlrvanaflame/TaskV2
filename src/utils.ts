@@ -57,5 +57,5 @@ export function removeOldAndExpiredKeys (
 
 export function clearStore (): void {
   removeOldAndExpiredKeys(store, unlimitedTtlStore, maxKeyNumber)
-  setTimeout(clearStore, 60000)
+  setInterval(clearStore, 60000)
 }

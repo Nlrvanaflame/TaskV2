@@ -146,30 +146,53 @@ router.put(
       { requestBody: req.body, queryParams: req.query },
       'Handle request to update an existing item'
     )
-
-    // TODO - if ttl removed or added should be moved to the other store (difficulty - 💀)
     try {
       const { key } = req.params
       const updates = req.body
       const itemToUpdate = store.get(key)
       const unlimitedItemToUpdate = unlimitedTtlStore.get(key)
 
-      if (itemToUpdate != null) {
-        store.set(key, {
+      const ttlAdded = updates.ttl !== undefined && updates.ttl !== null
+      const ttlRemoved = updates.ttl === null
+
+      if (itemToUpdate != null && ttlRemoved) {
+        unlimitedTtlStore.set(key, {
           ...itemToUpdate,
           ...updates
         })
-        res.status(200).send(store.get(key))
+        store.delete(key)
+        return res.status(200).send(unlimitedTtlStore.get(key))
       }
 
-      if (unlimitedItemToUpdate != null) {
-        unlimitedTtlStore.set(key, {
+      if (unlimitedItemToUpdate != null && ttlAdded) {
+        unlimitedTtlStore.delete(key)
+        store.set(key, {
           ...itemToUpdate,
           ...updates,
           id: unlimitedItemToUpdate.id,
           createdAt: unlimitedItemToUpdate.createdAt,
           timesUsed: unlimitedItemToUpdate.timesUsed
         })
+        return res.status(200).send(store.get(key))
+      }
+
+      if (itemToUpdate != null) {
+        store.set(key, {
+          ...itemToUpdate,
+          ...updates
+        })
+        return res.status(200).send(store.get(key))
+      }
+
+      if (unlimitedItemToUpdate != null) {
+        unlimitedTtlStore.set(key, {
+          ...unlimitedItemToUpdate,
+          ...updates,
+          id: unlimitedItemToUpdate.id,
+          createdAt: unlimitedItemToUpdate.createdAt,
+          timesUsed: unlimitedItemToUpdate.timesUsed
+        })
+        return res.status(200).send(unlimitedTtlStore.get(key))
       }
 
       logger.info('No such item')
