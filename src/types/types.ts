@@ -20,7 +20,6 @@ export interface AddExemplar {
 export interface UpdateExemplar {
   name: string
   proffesion: string
-  ttl?: number
 }
 
 export interface GetExamplar {

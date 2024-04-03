@@ -9,8 +9,7 @@ export const AddExemplarSchema = z.object({
 
 export const UpdateExemplarSchema = z.object({
   name: z.string().optional(),
-  proffesion: z.string().optional(),
-  ttl: z.number().optional()
+  proffesion: z.string().optional()
 })
 
 export const GetExemplarSchema = z.object({

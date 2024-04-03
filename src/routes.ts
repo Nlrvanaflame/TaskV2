@@ -2,7 +2,8 @@ import {
   type AddExemplar,
   type CustomRequest,
   type UpdateExemplar,
-  type GetExamplar
+  type GetExamplar,
+  type AverageExamplar
 } from './types/types'
 import { type Response, Router } from 'express'
 import uuid from 'uniqid'
@@ -13,9 +14,10 @@ import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
-import { store, unlimitedTtlStore } from './config/default'
+import { clearStore } from './utils'
 
-// export const store: Record<string | number, AverageExamplar> = {}
+const storeWithTtl = new Map<string | number, AverageExamplar>()
+const storeWithoutTtl = new Map<string | number, AverageExamplar>()
 
 const router = Router()
 
@@ -33,31 +35,27 @@ router.post(
       const { key, name, proffesion, ttl } = req.body
 
       let timeoutId: NodeJS.Timeout | undefined
-      if (ttl != null) {
+      if (ttl !== undefined) {
         timeoutId = setTimeout(() => {
-          store.delete(key)
+          storage.delete(key)
         }, ttl)
-        clearTimeout(store.get(key)?.timeoutId)
-        store.set(key, {
-          id,
-          name,
-          proffesion,
-          ttl,
-          createdAt: Date.now(),
-          timesUsed: 0,
-          timeoutId
-        })
+        clearTimeout(storeWithTtl.get(key)?.timeoutId)
       }
-      if (ttl === null) {
-        unlimitedTtlStore.set(key, {
-          id,
-          name,
-          proffesion,
-          createdAt: Date.now(),
-          timesUsed: 0,
-          timeoutId
-        })
-      }
+
+      const item = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
+      if (item !== undefined) return res.status(400).send('Item already exists')
+
+      const storage = (ttl !== undefined) ? storeWithTtl : storeWithoutTtl
+
+      storage.set(key, {
+        id,
+        name,
+        proffesion,
+        ttl,
+        createdAt: Date.now(),
+        timesUsed: 0,
+        timeoutId
+      })
 
       logger.info('Request successfull')
       res.status(200).json({
@@ -85,18 +83,13 @@ router.get(
         'Handling request to return a single item based on key'
       )
       const { key } = req.params
-      const item = store.get(key)
-      const unlimitedTtlStoreItem = unlimitedTtlStore.get(key)
+      const item = storeWithTtl.get(key) ?? storeWithoutTtl
+        .get(key)
 
       if (item != null) {
         item.timesUsed += 1
         logger.info('Request successfull')
         return res.status(200).json('Get request successfull')
-      }
-      if (unlimitedTtlStoreItem != null) {
-        unlimitedTtlStoreItem.timesUsed += 1
-        logger.info('Request successful')
-        return res.status(200).json('Get request successful')
       }
     } catch (e) {
       logger.error('Unexpected error occured', e)
@@ -115,20 +108,14 @@ router.delete(
 
     try {
       const { key } = req.params
-      const subjectToTerminate = store.get(key)
-      const unlimitedSubjectToTerminate = unlimitedTtlStore.get(key)
+      const itemToTerminate = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
+      const storage = ((itemToTerminate?.ttl) !== null) ? storeWithTtl : storeWithoutTtl
 
-      if (subjectToTerminate != null) {
-        store.delete(key)
+      if (itemToTerminate !== null) {
+        storage.delete(key)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
       }
-      if (unlimitedSubjectToTerminate != null) {
-        unlimitedTtlStore.delete(key)
-        logger.info('Request successful')
-        return res.status(200).send('rabotata e svurshena')
-      }
-
       res.status(404).send('oturva se')
       logger.info('Nqma takuv exemplar')
     } catch (e) {
@@ -148,69 +135,24 @@ router.put(
     )
     try {
       const { key } = req.params
-      const updates = req.body
-      const itemToUpdate = store.get(key)
-      const unlimitedItemToUpdate = unlimitedTtlStore.get(key)
+      const { name, proffesion } = req.body
+      const itemToUpdate = storeWithTtl.get(key) ?? storeWithoutTtl
+        .get(key)
 
-      const ttlAdded = updates.ttl !== undefined && updates.ttl !== null
-      const ttlRemoved = updates.ttl === null
-
-      if (itemToUpdate != null && ttlRemoved) {
-        unlimitedTtlStore.set(key, {
-          ...itemToUpdate,
-          ...updates
-        })
-        store.delete(key)
-        return res.status(200).send(unlimitedTtlStore.get(key))
+      if (itemToUpdate === undefined) {
+        logger.info('No such item')
+        return res.status(404).send('nqma takuv chovek')
       }
 
-      if (unlimitedItemToUpdate != null && ttlAdded) {
-        unlimitedTtlStore.delete(key)
-        store.set(key, {
-          ...itemToUpdate,
-          ...updates,
-          id: unlimitedItemToUpdate.id,
-          createdAt: unlimitedItemToUpdate.createdAt,
-          timesUsed: unlimitedItemToUpdate.timesUsed
-        })
-        return res.status(200).send(store.get(key))
-      }
-
-      if (itemToUpdate != null) {
-        store.set(key, {
-          ...itemToUpdate,
-          ...updates
-        })
-        return res.status(200).send(store.get(key))
-      }
-
-      if (unlimitedItemToUpdate != null) {
-        unlimitedTtlStore.set(key, {
-          ...unlimitedItemToUpdate,
-          ...updates,
-          id: unlimitedItemToUpdate.id,
-          createdAt: unlimitedItemToUpdate.createdAt,
-          timesUsed: unlimitedItemToUpdate.timesUsed
-        })
-        return res.status(200).send(unlimitedTtlStore.get(key))
-      }
-
-      logger.info('No such item')
-      return res.status(404).send('nqma takuv chovek')
+      itemToUpdate.name = name
+      itemToUpdate.proffesion = proffesion
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send(e)
     }
   }
 )
-// dev requests
-router.get('/getAll', (req: CustomRequest<any>, res: Response) => {
-  const storeArray = Array.from(store).map(([key, value]) => ({
-    key,
-    value
-  }))
 
-  res.send(storeArray)
-})
+clearStore(storeWithTtl, storeWithoutTtl)
 
 export default router

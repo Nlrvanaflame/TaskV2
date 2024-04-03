@@ -1,5 +1,5 @@
 import { type AverageExamplar } from './types/types'
-import { maxKeyNumber, store, unlimitedTtlStore } from './config/default'
+import { maxKeyNumber } from './config/default'
 
 function deleteLeastUsed (
   store: Map<string | number, AverageExamplar>,
@@ -46,7 +46,10 @@ export function removeOldAndExpiredKeys (
   })
 }
 
-export function clearStore (): void {
+export function clearStore (
+  store: Map<string | number, AverageExamplar>,
+  unlimitedTtlStore: Map<string | number, AverageExamplar>
+): void {
   removeOldAndExpiredKeys(store, unlimitedTtlStore, maxKeyNumber)
   setInterval(clearStore, 60000)
 }
