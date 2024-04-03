@@ -1,7 +1,6 @@
 import { type Request } from 'express'
 
 export interface AverageExamplar {
-  id: string
   name: string
   proffesion: string
   ttl?: number

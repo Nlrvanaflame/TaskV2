@@ -6,7 +6,6 @@ import {
   type AverageExamplar
 } from './types/types'
 import { type Response, Router } from 'express'
-import uuid from 'uniqid'
 import logger from './middleware/logger'
 
 import { validateBody } from './middleware/validator'
@@ -31,43 +30,32 @@ router.post(
     )
 
     try {
-      const id = uuid()
       const { key, name, proffesion, ttl } = req.body
-
-      let timeoutId: NodeJS.Timeout | undefined
-      if (ttl !== undefined) {
-        timeoutId = setTimeout(() => {
-          storage.delete(key)
-        }, ttl)
-        clearTimeout(storeWithTtl.get(key)?.timeoutId)
-      }
 
       const item = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
       if (item !== undefined) return res.status(400).send('Item already exists')
 
-      const storage = (ttl !== undefined) ? storeWithTtl : storeWithoutTtl
+      let timeoutId: NodeJS.Timeout | undefined
+      if (ttl !== undefined) {
+        timeoutId = setTimeout(() => {
+          storeWithTtl.delete(key)
+        }, ttl)
+      }
+      const store = (ttl !== undefined) ? storeWithTtl : storeWithoutTtl
 
-      storage.set(key, {
-        id,
+      const data = {
         name,
         proffesion,
         ttl,
         createdAt: Date.now(),
         timesUsed: 0,
         timeoutId
-      })
+      }
+
+      store.set(key, data)
 
       logger.info('Request successfull')
-      res.status(200).json({
-        data: {
-          key,
-          name,
-          proffesion,
-          ttl,
-          createdAt: Date.now(),
-          timesUsed: 0
-        }
-      })
+      res.status(201).json(data)
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send('Unexpected error occured')
@@ -83,13 +71,12 @@ router.get(
         'Handling request to return a single item based on key'
       )
       const { key } = req.params
-      const item = storeWithTtl.get(key) ?? storeWithoutTtl
-        .get(key)
+      const item = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
 
-      if (item != null) {
+      if (item !== undefined) {
         item.timesUsed += 1
         logger.info('Request successfull')
-        return res.status(200).json('Get request successfull')
+        return res.status(200).json('Request successfull')
       }
     } catch (e) {
       logger.error('Unexpected error occured', e)
@@ -112,6 +99,7 @@ router.delete(
       const storage = ((itemToTerminate?.ttl) !== null) ? storeWithTtl : storeWithoutTtl
 
       if (itemToTerminate !== null) {
+        clearTimeout(storeWithTtl.get(key)?.timeoutId)
         storage.delete(key)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
@@ -136,8 +124,7 @@ router.put(
     try {
       const { key } = req.params
       const { name, proffesion } = req.body
-      const itemToUpdate = storeWithTtl.get(key) ?? storeWithoutTtl
-        .get(key)
+      const itemToUpdate = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
 
       if (itemToUpdate === undefined) {
         logger.info('No such item')
