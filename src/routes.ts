@@ -133,6 +133,7 @@ router.put(
 
       itemToUpdate.name = name
       itemToUpdate.proffesion = proffesion
+      res.status(200).send(itemToUpdate)
     } catch (e) {
       logger.error('Unexpected error occured:', e)
       res.status(500).send(e)
@@ -140,6 +141,25 @@ router.put(
   }
 )
 
-clearStore(storeWithTtl, storeWithoutTtl)
+// dev
+router.get('/getAll', (req, res) => {
+  logger.info('Handling request to get all items with TTL')
+
+  try {
+    const itemsWithTtl: Record<string | number, AverageExamplar> = {}
+
+    storeWithTtl.forEach((value, key) => {
+      itemsWithTtl[key] = value
+    })
+
+    logger.info('Successfully retrieved all items with TTL')
+    res.status(200).json(itemsWithTtl)
+  } catch (e) {
+    logger.error('Unexpected error occurred:', e)
+    res.status(500).send('Unexpected error occurred')
+  }
+})
+
+clearStore(storeWithTtl, 3)
 
 export default router

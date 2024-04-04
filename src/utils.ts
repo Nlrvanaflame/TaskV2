@@ -3,33 +3,39 @@ import { maxKeyNumber } from './config/default'
 
 function deleteLeastUsed (
   store: Map<string | number, AverageExamplar>,
-  unlimitedTtlStore: Map<string | number, AverageExamplar>,
   maxKeyNumber: number,
   keysToDelete: string[],
-  validKeys: Array<{ key: string, ttlLeft: number, timesUsed: number }>): void {
-  /* Here we sort the array of valid keys we have populated beforehand and push the first key to the array for deletion
-    */
-  if (store.size + unlimitedTtlStore.size >= maxKeyNumber) {
-    validKeys.sort((a, b) => {
-      if (a.timesUsed === b.timesUsed) {
-        return a.ttlLeft - b.ttlLeft
+  validKeys: Array<{ key: string, ttlLeft: number, timesUsed: number }>,
+  numberOfKeysToDelete: number): void {
+  if (store.size >= maxKeyNumber) {
+    while (keysToDelete.length < numberOfKeysToDelete && validKeys.length > 0) {
+      let leastUsedIndex = 0
+
+      for (let key = 1; key < validKeys.length; key++) {
+        const current = validKeys[key]
+        const leastUsed = validKeys[leastUsedIndex]
+
+        if (current.timesUsed < leastUsed.timesUsed ||
+            (current.timesUsed === leastUsed.timesUsed && current.ttlLeft < leastUsed.ttlLeft)) {
+          leastUsedIndex = key
+        }
       }
-      return a.timesUsed - b.timesUsed
-    })
-    keysToDelete.push(validKeys[0].key)
+
+      keysToDelete.push(validKeys[leastUsedIndex].key)
+
+      validKeys.splice(leastUsedIndex, 1)
+    }
   }
 }
 
 export function removeOldAndExpiredKeys (
   store: Map<string | number, AverageExamplar>,
-  unlimitedTtlStore: Map<string | number, AverageExamplar>,
-  maxKeyNumber: number
+  maxKeyNumber: number,
+  numberOfKeysToDelete: number
 ): void {
   const keysToDelete: string[] = []
   const validKeys: Array<{ key: string, ttlLeft: number, timesUsed: number }> = []
 
-  /* Checks for any expired keys and adds them to the array for deletion, also populates the valid keys array
-    */
   store.forEach((value, key) => {
     const ttlLeft = (value.ttl != null) ? (value.createdAt + value.ttl - Date.now()) : Infinity
     if (ttlLeft <= 0) {
@@ -39,7 +45,7 @@ export function removeOldAndExpiredKeys (
     }
   })
 
-  deleteLeastUsed(store, unlimitedTtlStore, maxKeyNumber, keysToDelete, validKeys)
+  deleteLeastUsed(store, maxKeyNumber, keysToDelete, validKeys, numberOfKeysToDelete)
   keysToDelete.forEach(key => {
     clearTimeout(store.get(key)?.timeoutId)
     store.delete(key)
@@ -48,8 +54,10 @@ export function removeOldAndExpiredKeys (
 
 export function clearStore (
   store: Map<string | number, AverageExamplar>,
-  unlimitedTtlStore: Map<string | number, AverageExamplar>
+  numberOfKeysToDelete: number
 ): void {
-  removeOldAndExpiredKeys(store, unlimitedTtlStore, maxKeyNumber)
-  setInterval(clearStore, 60000)
+  removeOldAndExpiredKeys(store, maxKeyNumber, numberOfKeysToDelete)
+  setTimeout(() => {
+    clearStore(store, numberOfKeysToDelete)
+  }, 60000)
 }
