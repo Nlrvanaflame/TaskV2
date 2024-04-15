@@ -1,6 +1,10 @@
 import { type AverageExamplar } from './types/types'
 import { maxKeyNumber } from './config/default'
 
+export function compareKeys (a: { timesUsed: number, ttlLeft: number }, b: { timesUsed: number, ttlLeft: number }): boolean {
+  return a.timesUsed < b.timesUsed || (a.timesUsed === b.timesUsed && a.ttlLeft < b.ttlLeft)
+}
+
 function deleteLeastUsed (
   store: Map<string | number, AverageExamplar>,
   maxKeyNumber: number,

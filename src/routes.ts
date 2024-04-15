@@ -13,10 +13,11 @@ import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
-import { clearStore } from './utils'
+import PriorityQueue from './classes/PriorityQueue'
 
 const storeWithTtl = new Map<string | number, AverageExamplar>()
 const storeWithoutTtl = new Map<string | number, AverageExamplar>()
+const priorityQueue = new PriorityQueue()
 
 const router = Router()
 
@@ -35,24 +36,25 @@ router.post(
       const item = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
       if (item !== undefined) return res.status(400).send('Item already exists')
 
-      let timeoutId: NodeJS.Timeout | undefined
-      if (ttl !== undefined) {
-        timeoutId = setTimeout(() => {
-          storeWithTtl.delete(key)
-        }, ttl)
-      }
       const store = (ttl !== undefined) ? storeWithTtl : storeWithoutTtl
 
-      const data = {
+      const data: AverageExamplar = {
         name,
         proffesion,
         ttl,
         createdAt: Date.now(),
-        timesUsed: 0,
-        timeoutId
+        timesUsed: 0
+      }
+
+      if (ttl !== undefined) {
+        const timeoutId = setTimeout(() => {
+          storeWithTtl.delete(key)
+        }, ttl)
+        data.timeoutId = timeoutId
       }
 
       store.set(key, data)
+      priorityQueue.enqueue(key, data)
 
       logger.info('Request successfull')
       res.status(201).json(data)
@@ -75,6 +77,7 @@ router.get(
 
       if (item !== undefined) {
         item.timesUsed += 1
+        priorityQueue.update(key, item)
         logger.info('Request successfull')
         return res.status(200).json('Request successfull')
       }
@@ -101,6 +104,7 @@ router.delete(
       if (itemToTerminate !== null) {
         clearTimeout(storeWithTtl.get(key)?.timeoutId)
         storage.delete(key)
+        priorityQueue.remove(key)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
       }
@@ -159,7 +163,5 @@ router.get('/getAll', (req, res) => {
     res.status(500).send('Unexpected error occurred')
   }
 })
-
-clearStore(storeWithTtl, 3)
 
 export default router
