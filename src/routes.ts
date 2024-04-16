@@ -13,7 +13,7 @@ import {
   AddExemplarSchema,
   UpdateExemplarSchema
 } from './types/schemas'
-import PriorityQueue from './classes/PriorityQueue'
+import PriorityQueue from './dataStructures/PriorityQueue'
 
 const storeWithTtl = new Map<string | number, AverageExamplar>()
 const storeWithoutTtl = new Map<string | number, AverageExamplar>()

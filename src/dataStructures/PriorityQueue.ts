@@ -99,8 +99,7 @@ class PriorityQueue {
 
   ensureCapacity (): void {
     while (this.heap.length > maxKeyNumber) {
-      const removedNode = this.dequeue()
-      if (removedNode !== undefined) { console.log(`Removed item key: ${removedNode.key}`) }
+      this.dequeue()
     }
   }
 
