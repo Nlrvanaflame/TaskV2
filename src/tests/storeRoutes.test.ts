@@ -1,6 +1,6 @@
 import request from 'supertest'
 import express from 'express'
-import router from '../routes'
+import router from '../routes/storeRoutes'
 
 const app = express()
 

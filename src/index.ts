@@ -1,5 +1,5 @@
 import express, { type Express } from 'express'
-import routes from './routes'
+import routes from './routes/storeRoutes'
 
 const app: Express = express()
 const PORT = (process.env.PORT != null) || 3000

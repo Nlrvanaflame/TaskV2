@@ -34,19 +34,17 @@ class PriorityQueue {
     return result
   }
 
-  update (key: string | number, newValue: AverageExamplar): boolean {
+  update (key: string | number): void {
     const index = this.heap.findIndex(node => node.key === key)
-    if (index === -1) return false
+    if (index === -1) return
 
-    this.heap[index].value = newValue
     this.heapifyUp(index)
     this.heapifyDown(index)
-    return true
   }
 
-  remove (key: string | number): boolean {
+  remove (key: string | number): void {
     const index = this.heap.findIndex(node => node.key === key)
-    if (index === -1) return false
+    if (index === -1) return
 
     const last = this.heap.pop()
     if (index < this.heap.length && last !== undefined) {
@@ -54,7 +52,6 @@ class PriorityQueue {
       this.heapifyUp(index)
       this.heapifyDown(index)
     }
-    return true
   }
 
   private heapifyUp (index: number): void {

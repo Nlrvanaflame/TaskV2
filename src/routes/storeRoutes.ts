@@ -4,16 +4,16 @@ import {
   type UpdateExemplar,
   type GetExamplar,
   type AverageExamplar
-} from './types/types'
+} from '../types/types'
 import { type Response, Router } from 'express'
-import logger from './middleware/logger'
+import logger from '../middleware/logger'
 
-import { validateBody } from './middleware/validator'
+import { validateBody } from '../middleware/validator'
 import {
   AddExemplarSchema,
   UpdateExemplarSchema
-} from './types/schemas'
-import PriorityQueue from './dataStructures/PriorityQueue'
+} from '../types/schemas'
+import PriorityQueue from '../dataStructures/PriorityQueue'
 
 const storeWithTtl = new Map<string | number, AverageExamplar>()
 const storeWithoutTtl = new Map<string | number, AverageExamplar>()
@@ -49,13 +49,6 @@ router.post(
         timesUsed: 0
       }
 
-      // if (ttl !== undefined) {
-      //   const timeoutId = setTimeout(() => {
-      //     storeWithTtl.delete(key)
-      //   }, ttl)
-      //   data.timeoutId = timeoutId
-      // }
-
       store.set(key, data)
       priorityQueue.enqueue(key, data)
 
@@ -80,7 +73,7 @@ router.get(
 
       if (item !== undefined) {
         item.timesUsed += 1
-        priorityQueue.update(key, item)
+        priorityQueue.update(key)
         logger.info('Request successfull')
         return res.status(200).json('Request successfull')
       }
