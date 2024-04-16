@@ -17,7 +17,10 @@ import PriorityQueue from './classes/PriorityQueue'
 
 const storeWithTtl = new Map<string | number, AverageExamplar>()
 const storeWithoutTtl = new Map<string | number, AverageExamplar>()
-const priorityQueue = new PriorityQueue()
+const priorityQueue = new PriorityQueue((key) => {
+  storeWithTtl.delete(key)
+  storeWithoutTtl.delete(key)
+})
 
 const router = Router()
 
@@ -46,12 +49,12 @@ router.post(
         timesUsed: 0
       }
 
-      if (ttl !== undefined) {
-        const timeoutId = setTimeout(() => {
-          storeWithTtl.delete(key)
-        }, ttl)
-        data.timeoutId = timeoutId
-      }
+      // if (ttl !== undefined) {
+      //   const timeoutId = setTimeout(() => {
+      //     storeWithTtl.delete(key)
+      //   }, ttl)
+      //   data.timeoutId = timeoutId
+      // }
 
       store.set(key, data)
       priorityQueue.enqueue(key, data)
@@ -163,5 +166,8 @@ router.get('/getAll', (req, res) => {
     res.status(500).send('Unexpected error occurred')
   }
 })
+
+// clearStore(storeWithTtl, 1)
+// clearStore(storeWithoutTtl, 1)
 
 export default router
