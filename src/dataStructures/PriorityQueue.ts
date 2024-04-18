@@ -1,13 +1,8 @@
 import { maxKeyNumber } from '../config/default'
 import { type AverageExamplar } from '../types/types'
 
-interface QueueNode {
-  key: string | number
-  value: AverageExamplar
-}
-
 class PriorityQueue {
-  private readonly heap: QueueNode[]
+  private readonly heap: AverageExamplar[]
   private readonly onRemove: (key: string | number) => void
 
   constructor (onRemove: (key: string | number) => void) {
@@ -15,83 +10,87 @@ class PriorityQueue {
     this.onRemove = onRemove
   }
 
-  enqueue (key: string | number, value: AverageExamplar): void {
-    const newNode = { key, value }
-    this.heap.push(newNode)
-    this.heapifyUp(this.heap.length - 1)
-    this.ensureCapacity()
+  enqueue (node: AverageExamplar): void {
+    this.heap.push(node)
+    node.heapIndex = this.heap.length - 1
+    this.heapifyUp(node.heapIndex)
   }
 
-  dequeue (): QueueNode | undefined {
+  dequeue (): AverageExamplar | undefined {
     if (this.heap.length === 0) return undefined
     const result = this.heap[0]
     const last = this.heap.pop()
-    if (this.heap.length > 0 && last !== undefined) {
+    if (this.heap.length > 0 && last != null) {
       this.heap[0] = last
+      last.heapIndex = 0
       this.heapifyDown(0)
     }
     this.onRemove(result.key)
     return result
   }
 
-  update (key: string | number): void {
-    const index = this.heap.findIndex(node => node.key === key)
-    if (index === -1) return
-
-    this.heapifyUp(index)
-    this.heapifyDown(index)
-  }
-
-  remove (key: string | number): void {
-    const index = this.heap.findIndex(node => node.key === key)
-    if (index === -1) return
-
-    const last = this.heap.pop()
-    if (index < this.heap.length && last !== undefined) {
-      this.heap[index] = last
+  update (node: AverageExamplar): void {
+    const index = node.heapIndex
+    if (index !== undefined && index < this.heap.length) {
       this.heapifyUp(index)
       this.heapifyDown(index)
     }
   }
 
+  remove (heapIndex: number): void {
+    if (heapIndex === undefined || heapIndex < 0 || heapIndex >= this.heap.length) { return undefined }
+
+    this.swap(heapIndex, this.heap.length - 1)
+    this.heap.pop()
+    if (heapIndex < this.heap.length && this.heap.length > 0) {
+      this.heapifyDown(heapIndex)
+      this.heapifyUp(heapIndex)
+    }
+  }
+
   private heapifyUp (index: number): void {
-    while (index > 0) {
-      const parentIdx = this.parent(index)
-      if (this.compare(this.heap[index], this.heap[parentIdx])) {
+    let currentIndex = index
+    while (currentIndex > 0) {
+      const parentIdx = this.parent(currentIndex)
+      if (this.compare(this.heap[currentIndex], this.heap[parentIdx]) < 0) {
+        this.swap(currentIndex, parentIdx)
+        currentIndex = parentIdx
+      } else {
         break
       }
-      [this.heap[index], this.heap[parentIdx]] = [this.heap[parentIdx], this.heap[index]]
-      index = parentIdx
     }
   }
 
   private heapifyDown (index: number): void {
+    let currentIndex = index
+    const last = this.heap.length - 1
     while (true) {
-      const leftIdx = this.leftChild(index)
-      const rightIdx = this.rightChild(index)
-      let smallest = index
-      if (leftIdx < this.heap.length && this.compare(this.heap[leftIdx], this.heap[smallest])) {
+      let smallest = currentIndex
+      const leftIdx = this.leftChild(currentIndex)
+      const rightIdx = this.rightChild(currentIndex)
+      if (leftIdx <= last && this.compare(this.heap[leftIdx], this.heap[smallest]) < 0) {
         smallest = leftIdx
       }
-      if (rightIdx < this.heap.length && this.compare(this.heap[rightIdx], this.heap[smallest])) {
+      if (rightIdx <= last && this.compare(this.heap[rightIdx], this.heap[smallest]) < 0) {
         smallest = rightIdx
       }
-      if (smallest === index) {
+      if (smallest === currentIndex) {
         break
       }
-      [this.heap[index], this.heap[smallest]] = [this.heap[smallest], this.heap[index]]
-      index = smallest
+      this.swap(currentIndex, smallest)
+      currentIndex = smallest
     }
   }
 
-  private compare (a: QueueNode, b: QueueNode): boolean {
-    const aTtlLeft = this.calculateTtlLeft(a.value)
-    const bTtlLeft = this.calculateTtlLeft(b.value)
-    return a.value.timesUsed < b.value.timesUsed || (a.value.timesUsed === b.value.timesUsed && aTtlLeft > bTtlLeft)
+  private swap (i: number, j: number): void {
+    [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]]
+    this.heap[i].heapIndex = i
+    this.heap[j].heapIndex = j
   }
 
-  private calculateTtlLeft (exemplar: AverageExamplar): number {
-    return exemplar.ttl != null ? exemplar.createdAt + exemplar.ttl - Date.now() : Infinity
+  private compare (a: AverageExamplar, b: AverageExamplar): number {
+    if (a.timesUsed !== b.timesUsed) return a.timesUsed - b.timesUsed
+    return a.createdAt - b.createdAt
   }
 
   ensureCapacity (): void {

@@ -1,6 +1,8 @@
 import { type Request } from 'express'
 
 export interface AverageExamplar {
+  key: string
+  heapIndex: number
   name: string
   proffesion: string
   ttl?: number

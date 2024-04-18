@@ -1,1 +1,1 @@
-export const maxKeyNumber = 5
+export const maxKeyNumber = 3

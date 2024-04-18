@@ -34,6 +34,7 @@ router.post(
     )
 
     try {
+      priorityQueue.ensureCapacity()
       const { key, name, proffesion, ttl } = req.body
 
       const item = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
@@ -42,15 +43,17 @@ router.post(
       const store = (ttl !== undefined) ? storeWithTtl : storeWithoutTtl
 
       const data: AverageExamplar = {
+        key,
         name,
         proffesion,
         ttl,
         createdAt: Date.now(),
-        timesUsed: 0
+        timesUsed: 0,
+        heapIndex: -1
       }
 
       store.set(key, data)
-      priorityQueue.enqueue(key, data)
+      priorityQueue.enqueue(data)
 
       logger.info('Request successfull')
       res.status(201).json(data)
@@ -73,7 +76,7 @@ router.get(
 
       if (item !== undefined) {
         item.timesUsed += 1
-        priorityQueue.update(key)
+        priorityQueue.update(item)
         logger.info('Request successfull')
         return res.status(200).json('Request successfull')
       }
@@ -97,10 +100,10 @@ router.delete(
       const itemToTerminate = storeWithTtl.get(key) ?? storeWithoutTtl.get(key)
       const storage = ((itemToTerminate?.ttl) !== null) ? storeWithTtl : storeWithoutTtl
 
-      if (itemToTerminate !== null) {
+      if (itemToTerminate !== undefined) {
         clearTimeout(storeWithTtl.get(key)?.timeoutId)
         storage.delete(key)
-        priorityQueue.remove(key)
+        priorityQueue.remove(itemToTerminate.heapIndex)
         logger.info('Request successful')
         return res.status(200).send('rabotata e svurshena')
       }
